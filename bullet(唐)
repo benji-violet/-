@@ -1,0 +1,118 @@
+//bullet.h
+
+#ifndef BULLET_H
+#define BULLET_H
+
+#include <QGraphicsRectItem>
+#include <QGraphicsScene>
+
+class Bullet : public QGraphicsRectItem
+{
+public:
+    Bullet(int x, int y, char dir, QGraphicsScene* scene, bool isEnemy = false);
+    void move();
+    bool isAlive() const;
+    void setAlive(bool value);
+    bool isEnemyBullet() const;
+    
+private:
+    void calculateTargetPosition(qreal sceneWidth, qreal sceneHeight);
+    
+    bool alive;
+    char direction;
+    qreal targetX, targetY;
+    qreal moveDX, moveDY;
+    qreal moveStep;
+    bool enemyBullet;
+};
+
+#endif // BULLET_H
+
+
+
+// bullet.cpp
+#include <QGraphicsScene>
+#include "bullet.h"
+#include <QBrush>
+#include <qmath.h>
+
+Bullet::Bullet(int x, int y, char dir, QGraphicsScene* scene, bool isEnemy)
+    : QGraphicsRectItem(0, 0, 5, 5, nullptr), 
+    alive(true), 
+    direction(dir),
+    enemyBullet(isEnemy) {
+    setPos(x, y);
+    setBrush(QBrush(enemyBullet ? Qt::red : Qt::yellow));
+    scene->addItem(this);
+    
+    calculateTargetPosition(scene->width(), scene->height());
+}
+
+void Bullet::calculateTargetPosition(qreal sceneWidth, qreal sceneHeight) {
+    qreal startX = x();
+    qreal startY = y();
+    
+    switch(direction) {
+    case '^': // 向上
+        targetX = startX;
+        targetY = 0;
+        break;
+    case 'v': // 向下
+        targetX = startX;
+        targetY = sceneHeight;
+        break;
+    case '<': // 向左
+        targetX = 0;
+        targetY = startY;
+        break;
+    case '>': // 向右
+        targetX = sceneWidth;
+        targetY = startY;
+        break;
+    }
+    
+    qreal dx = targetX - startX;
+    qreal dy = targetY - startY;
+    qreal distance = qSqrt(dx * dx + dy * dy);
+    
+    moveStep = 5.0;
+    moveDX = (dx / distance) * moveStep;
+    moveDY = (dy / distance) * moveStep;
+}
+
+void Bullet::move() {
+    setPos(x() + moveDX, y() + moveDY);
+    
+    bool passedTarget = false;
+    
+    switch(direction) {
+    case '^':
+        passedTarget = y() <= targetY;
+        break;
+    case 'v':
+        passedTarget = y() >= targetY;
+        break;
+    case '<':
+        passedTarget = x() <= targetX;
+        break;
+    case '>':
+        passedTarget = x() >= targetX;
+        break;
+    }
+    
+    if (passedTarget) {
+        alive = false;
+    }
+}
+
+bool Bullet::isAlive() const {
+    return alive;
+}
+
+void Bullet::setAlive(bool value) {
+    alive = value;
+}
+
+bool Bullet::isEnemyBullet() const {
+    return enemyBullet;
+}
