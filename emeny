@@ -1,0 +1,163 @@
+#ifndef ENEMY_H
+#define ENEMY_H
+
+#include <QGraphicsRectItem>
+#include <QObject>
+#include "bullet.h"
+
+class Enemy : public QObject, public QGraphicsRectItem
+{
+    Q_OBJECT
+public:
+    // 敌人类型枚举
+    enum Type {
+        NORMAL,    // 普通敌人
+        FAST,      // 快速敌人
+        HEAVY,     // 重型敌人
+        BOSS       // Boss敌人
+    };
+    
+    // 构造函数
+    Enemy(int x, int y, Type type = NORMAL, QGraphicsScene* scene = nullptr);
+    
+    // 基本属性
+    int getHealth() const { return health; }
+    Type getType() const { return enemyType; }
+    bool isAlive() const { return health > 0; }
+    
+    // 敌人行为
+    virtual void move();
+    virtual void shoot();
+    virtual void takeDamage(int damage = 1);
+    
+    // 碰撞检测
+    bool checkCollisionWithBullet(const Bullet* bullet) const;
+    
+signals:
+    void destroyed(Enemy* enemy);  // 敌人被摧毁信号
+    
+protected:
+    Type enemyType;
+    int health;
+    int speed;
+    int fireRate;
+    int fireCounter;
+};
+
+#endif // ENEMY_H
+
+//enemy.h
+
+
+
+
+#include "enemy.h"
+#include <QBrush>
+#include <QPen>
+#include <QTimer>
+#include <random>
+
+Enemy::Enemy(int x, int y, Type type, QGraphicsScene* scene)
+    : QObject(), QGraphicsRectItem(0, 0, 40, 40, nullptr),
+    enemyType(type), health(1), speed(2), fireRate(100), fireCounter(0) {
+    setPos(x, y);
+    
+    // 根据敌人类型设置属性
+    switch(type) {
+    case NORMAL:
+        health = 1;
+        speed = 2;
+        setBrush(QBrush(Qt::red));
+        break;
+    case FAST:
+        health = 1;
+        speed = 4;  // 更快的速度
+        setBrush(QBrush(Qt::magenta));
+        break;
+    case HEAVY:
+        health = 3;  // 更高的生命值
+        speed = 1;  // 更慢的速度
+        setBrush(QBrush(Qt::darkRed));
+        break;
+    case BOSS:
+        health = 10;  // 高生命值
+        speed = 1;
+        fireRate = 50;  // 更快的射速
+        setBrush(QBrush(Qt::darkMagenta));
+        setRect(0, 0, 60, 60);  // Boss更大
+        break;
+    }
+    
+    // 添加生命值显示
+    if (scene) {
+        scene->addItem(this);
+    }
+}
+
+void Enemy::move() {
+    // 随机移动逻辑
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dirDis(0, 3);
+    static std::uniform_int_distribution<> moveDis(0, 50);
+    
+    // 5%概率改变方向
+    if (moveDis(gen) < 3) {
+        switch(dirDis(gen)) {
+        case 0: setX(x() - speed); break;  // 左
+        case 1: setX(x() + speed); break;  // 右
+        case 2: setY(y() - speed); break;  // 上
+        case 3: setY(y() + speed); break;  // 下
+        }
+    }
+    
+    // 边界检查
+    if (x() < 0) setX(0);
+    if (x() > 800 - rect().width()) setX(800 - rect().width());
+    if (y() < 0) setY(0);
+    if (y() > 600 - rect().width()) setY(600 - rect().width());
+}
+
+void Enemy::shoot() {
+    // 射击冷却
+    if (fireCounter < fireRate) {
+        fireCounter++;
+        return;
+    }
+    
+    fireCounter = 0;
+    
+    // 发射子弹逻辑（需要实现Bullet类）
+    // emit shootBullet(x() + rect().width()/2, y() + rect().height());
+}
+
+void Enemy::takeDamage(int damage) {
+    health -= damage;
+    
+    // 受伤视觉反馈
+    QBrush originalBrush = brush();
+    setBrush(QBrush(Qt::white));
+    QTimer::singleShot(100, [this, originalBrush]() {
+        setBrush(originalBrush);
+    });
+    
+    // 检查是否被摧毁
+    if (health <= 0) {
+        emit destroyed(this);
+    }
+}
+
+bool Enemy::checkCollisionWithBullet(const Bullet* bullet) const {
+    if (!bullet) return false;
+    return collidesWithItem(bullet);
+}
+
+
+enemy.cpp
+
+
+
+
+
+
+
