@@ -19,8 +19,7 @@ Map::Map(QWidget *parent)
     });
 }
 
-Map::~Map()
-{}
+Map::~Map() {}
 
 void Map::renderMap() {
 
