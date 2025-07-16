@@ -1,0 +1,111 @@
+//*.h
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+#include <QPushButton>
+
+class MainWindow : public QMainWindow {
+    Q_OBJECT
+    
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+    
+private slots:
+    void onStartGameClicked();   // 开始游戏按钮槽函数
+    void onSettingsClicked();   // 设置按钮槽函数
+    void onHelpClicked();       // 帮助按钮槽函数
+    void onExitClicked();       // 退出按钮槽函数
+    
+private:
+    QPushButton *startButton;   // 开始游戏按钮
+    QPushButton *settingsButton;// 设置按钮
+    QPushButton *helpButton;    // 帮助按钮
+    QPushButton *exitButton;    // 退出按钮
+};
+
+#endif // MAINWINDOW_H
+
+
+
+
+//.cpp
+
+#include "mainwindow.h"
+#include <QMessageBox>
+#include <QVBoxLayout>
+#include <QWidget>
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent) 
+{
+    // 设置主窗口属性
+    setWindowTitle("坦克大战");
+    setFixedSize(400, 300);
+    
+    // 创建中心部件和布局
+    QWidget *centralWidget = new QWidget(this);
+    QVBoxLayout *layout = new QVBoxLayout(centralWidget);
+    
+    // 初始化按钮
+    startButton = new QPushButton("开始游戏", this);
+    settingsButton = new QPushButton("游戏设置", this);
+    helpButton = new QPushButton("帮助说明", this);
+    exitButton = new QPushButton("退出游戏", this);
+    
+    // 设置按钮样式（可选）
+    startButton->setStyleSheet("QPushButton { font-size: 16px; padding: 10px; }");
+    settingsButton->setStyleSheet("QPushButton { font-size: 16px; padding: 10px; }");
+    helpButton->setStyleSheet("QPushButton { font-size: 16px; padding: 10px; }");
+    exitButton->setStyleSheet("QPushButton { font-size: 16px; padding: 10px; }");
+    
+    // 添加按钮到布局
+    layout->addWidget(startButton);
+    layout->addWidget(settingsButton);
+    layout->addWidget(helpButton);
+    layout->addWidget(exitButton);
+    
+    // 设置中心部件
+    setCentralWidget(centralWidget);
+    
+    // 连接信号与槽
+    connect(startButton, &QPushButton::clicked, this, &MainWindow::onStartGameClicked);
+    connect(settingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsClicked);
+    connect(helpButton, &QPushButton::clicked, this, &MainWindow::onHelpClicked);
+    connect(exitButton, &QPushButton::clicked, this, &MainWindow::onExitClicked);
+}
+
+MainWindow::~MainWindow() 
+{
+    // 自动释放控件，无需手动删除
+}
+
+// 开始游戏按钮槽函数
+void MainWindow::onStartGameClicked() 
+{
+    QMessageBox::information(this, "提示", "游戏开始！", QMessageBox::Ok);
+}
+
+// 设置按钮槽函数
+void MainWindow::onSettingsClicked() 
+{
+    QMessageBox::information(this, "提示", "进入设置界面！", QMessageBox::Ok);
+}
+
+// 帮助按钮槽函数
+void MainWindow::onHelpClicked() 
+{
+    QMessageBox::information(this, "提示", "帮助内容：WASD 移动，空格射击", QMessageBox::Ok);
+}
+
+// 退出按钮槽函数
+void MainWindow::onExitClicked() 
+{
+    if (QMessageBox::question(this, "退出", "确定退出游戏吗？", QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+        close(); // 关闭主窗口
+    }
+}
+
+
+
