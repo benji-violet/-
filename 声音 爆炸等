@@ -1,0 +1,143 @@
+#include <SFML/Audio.hpp>
+#include <string>
+#include <iostream>
+
+bool initializeBackgroundMusic(const std::string& filePath = "background_music.ogg",
+    float volume = 70.0f,
+    bool loop = true) {
+    // 静态布尔变量标记初始化状态
+    static bool initialized = []() {
+        static sf::Music music;
+
+        // 加载音乐文件(自己找路径)
+        if (!music.openFromFile(filePath)) {
+            std::cerr << "无法加载音乐文件: " << filePath << std::endl;
+            return false;
+        }
+        music.play();
+        std::cout << "背景音乐已启动..." << std::endl;
+
+        return true;
+        }(); 
+
+    return initialized;
+}
+
+int main() {
+    // 首次调用函数触发音乐初始化（程序启动阶段）
+    initializeBackgroundMusic();
+    return 0;
+}
+
+
+
+
+/*
+#include <SFML/Audio.hpp>
+#include <string>
+#include <iostream>
+
+
+bool playBackgroundMusicOnce(bool playSignal,
+    const std::string& filePath = "background_music.ogg",//找素材//
+    float volume = 70.0f) {
+    static sf::Music music;
+    static bool isPlaying = false;
+    static bool hasPlayed = false;
+
+    // 检查音乐是否播放完毕
+    if (isPlaying && music.getStatus() == sf::Music::Stopped) {
+        isPlaying = false;
+    }
+
+    // 处理播放信号
+    if (playSignal && !isPlaying && !hasPlayed) {
+        // 停止当前可能正在播放的音乐
+        if (music.getStatus() == sf::Music::Playing) {
+            music.stop();
+        }
+
+        // 加载新的音乐文件
+        if (!music.openFromFile(filePath)) {
+            std::cerr << "无法加载音乐文件: " << filePath << std::endl;
+            return false;
+        }
+
+        // 设置音乐属性
+        music.setVolume(volume);
+        music.setLoop(false); 
+
+        // 开始播放
+        music.play();
+        isPlaying = true;
+        
+    }
+    return isPlaying;
+}
+
+*/
+
+
+//爆炸特效
+
+
+#include <SFML/Graphics.hpp>
+#include <string>
+#include <memory>
+
+// 图像切换控制器（函数包装版本）
+bool switchImages(bool trigger, sf::RenderWindow& window, const std::string& img1Path, const std::string& img2Path, float displayTime = 2000.f) {
+    // 使用静态局部变量保存状态
+    static std::unique_ptr<sf::Texture> texture1 = std::make_unique<sf::Texture>();
+    static std::unique_ptr<sf::Texture> texture2 = std::make_unique<sf::Texture>();
+    static std::unique_ptr<sf::Sprite> sprite1 = std::make_unique<sf::Sprite>();
+    static std::unique_ptr<sf::Sprite> sprite2 = std::make_unique<sf::Sprite>();
+    static bool initialized = false;
+    static bool isImage2Active = false;
+    static sf::Clock displayTimer;）
+    if (!initialized) {
+        if (!texture1->loadFromFile(img1Path)) {
+            std::cerr << "Error loading image: " << img1Path << std::endl;
+            return false;
+        }
+        if (!texture2->loadFromFile(img2Path)) {
+            std::cerr << "Error loading image: " << img2Path << std::endl;
+            return false;
+        }
+
+        sprite1->setTexture(*texture1);
+        sprite2->setTexture(*texture2);
+
+        // 居中显示（可选）
+        sprite1->setPosition((window.getSize().x - sprite1->getGlobalBounds().width) / 2,
+            (window.getSize().y - sprite1->getGlobalBounds().height) / 2);
+        sprite2->setPosition((window.getSize().x - sprite2->getGlobalBounds().width) / 2,
+            (window.getSize().y - sprite2->getGlobalBounds().height) / 2);
+
+        initialized = true;
+    }
+
+    // 处理触发信号
+    if (trigger && !isImage2Active) {
+        isImage2Active = true;
+        displayTimer.restart();
+    }
+
+    // 控制图像2的显示时间
+    if (isImage2Active && displayTimer.getElapsedTime().asSeconds() * 1000 > displayTime) {
+        isImage2Active = false;
+    }
+
+    // 渲染当前活动的图像
+    window.clear();
+    if (isImage2Active) {
+        window.draw(*sprite2);
+    }
+    else {
+        window.draw(*sprite1);
+    }
+    window.display();
+
+    return isImage2Active;
+}
+
