@@ -36,5 +36,8 @@
         <file>maps/map4.txt</file>
         <file>maps/map5.txt</file>
         <file>maps/map6.txt</file>
+        <file>images/button/button1.png</file>
+        <file>images/button/button2.png</file>
+        <file>images/walls/6.png</file>
     </qresource>
 </RCC>

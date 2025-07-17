@@ -4,21 +4,28 @@
 #include <QTimer>
 #include <QPushButton>
 #include <QDebug>
-#include "totalscene.h"
-#include "map.h"
+#include <QMessageBox>
 
+#include "basescene.h"
+#include "scenebutton.h"
 
-class StartScene : public TotalScene
+class StartScene : public BaseScene
 {
     Q_OBJECT
 
 public:
-    StartScene();
-    ~StartScene();
+    explicit StartScene(QObject* parent = nullptr);
+    ~StartScene() = default;
+    void enter() override;
 
 protected:
-    void switchToGameScence(Map* map);
+    void totalConnect(SceneButton* button, int type);
+    void buttonSetting(SceneButton* button, int index);
 
 private:
+    SceneButton* start_btn;
+    SceneButton* exit_btn;
+    SceneButton* help_btn;
 };
+
 #endif // STARTSCENE_H

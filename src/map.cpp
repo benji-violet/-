@@ -1,134 +1,150 @@
 #include "map.h"
 
-Map::Map(QWidget *parent)
-    : QWidget{parent}
-{
-    resize(950, 750);
-    //检测组合按键
-    timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, &Map::checkKeyCombinations);
-    timer->start(50);
-    //创建按钮
-    QPushButton* backBtn = new QPushButton("back to main", this);
-    backBtn->move(this->width()-80, this->height()-32);
-    backBtn->resize(80, 32);
-    //监听按钮点击
-    connect(backBtn, &QPushButton::clicked, this, [=](){
-        emit switchToMainwindow();
-        qDebug() << "back to mainwindow";
-    });
+Map::Map(QObject* parent) : QObject(parent) {
+    generateRandomMap();
 }
 
 Map::~Map() {}
 
-void Map::renderMap() {
+void Map::generateRandomMap() {
+    map = QVector<QVector<int>>(ROWS, QVector<int>(COLS, 0));
+    QRandomGenerator* rand = QRandomGenerator::global();
 
-}
+    // 1. 边界全部为地面（0）
+    for (int i = 0; i < ROWS; ++i) {
+        map[i][0] = 0;
+        map[i][COLS-1] = 0;
+    }
+    for (int j = 0; j < COLS; ++j) {
+        map[0][j] = 0;
+        map[ROWS-1][j] = 0;
+    }
 
-QVector<QVector<int>> Map::generateRandomMap() {
-        QVector<QVector<int>> map(ROWS, QVector<int>(COLS, 0));  // 初始化全为空地
-        QRandomGenerator* rand = QRandomGenerator::global();
+    // 2. 司令部位置
+    QPoint base(ROWS-2, COLS/2);
+    map[base.x()][base.y()] = 5;
+    // 司令部周围空地
+    for(int dx=-1;dx<=1;++dx) for(int dy=-1;dy<=1;++dy) {
+        int nx=base.x()+dx, ny=base.y()+dy;
+        if(nx>0&&nx<ROWS-1&&ny>0&&ny<COLS-1) map[nx][ny]=0;
+    }
 
-        // 1. 设置边界为不可破坏墙体（1）
-        for (int i = 0; i < ROWS; ++i) {
-            map[i][0] = 1;                  // 左边界
-            map[i][COLS-1] = 1;             // 右边界
-        }
-        for (int j = 0; j < COLS; ++j) {
-            map[0][j] = 1;                  // 上边界
-            map[ROWS-1][j] = 1;             // 下边界
-        }
+    // 3. 敌人出生点
+    int mid = COLS / 2;
+    QVector<QPoint> enemySpawns = {
+        QPoint(1, mid - 5),        // 中上偏左
+        QPoint(1, mid + 5),        // 中上偏右
+        QPoint(5, 2),              // 左边缘下移3格
+        QPoint(5, COLS - 3)        // 右边缘下移3格
+    };
+    for(const auto& p:enemySpawns) map[p.x()][p.y()]=0;
 
-        // 2. 设置出生点（例如：玩家在(2,2)，敌人在(ROWS-3, COLS-3)）
-        QVector<QPoint> spawnPoints = {
-            QPoint(2, 2),                  // 玩家1出生点
-            QPoint(ROWS-3, COLS-3)         // 敌人出生点
-        };
-        for (auto& p : spawnPoints) {
-            map[p.x()][p.y()] = 5;         // 标记出生点
-            // 出生点周围3×3范围设为空地（安全区）
-            for (int dx = -1; dx <= 1; ++dx) {
-                for (int dy = -1; dy <= 1; ++dy) {
-                    int x = p.x() + dx;
-                    int y = p.y() + dy;
-                    if (x > 0 && x < ROWS-1 && y > 0 && y < COLS-1) {
-                        map[x][y] = 0;
-                    }
+    // 4. 主干道生成（BFS保证连通）
+    auto carvePath = [&](QPoint from, QPoint to) {
+        QVector<QVector<bool>> vis(ROWS, QVector<bool>(COLS,false));
+        QVector<QVector<QPoint>> prev(ROWS, QVector<QPoint>(COLS,QPoint(-1,-1)));
+        QVector<QPoint> q; q.push_back(from); vis[from.x()][from.y()]=true;
+        int dx[4]={1,-1,0,0}, dy[4]={0,0,1,-1};
+        while(!q.isEmpty()) {
+            QPoint cur=q.front(); q.pop_front();
+            if(cur==to) break;
+            for(int d=0;d<4;++d) {
+                int nx=cur.x()+dx[d], ny=cur.y()+dy[d];
+                if(nx>0&&nx<ROWS-1&&ny>0&&ny<COLS-1&&!vis[nx][ny]) {
+                    vis[nx][ny]=true; prev[nx][ny]=cur; q.push_back(QPoint(nx,ny));
                 }
             }
         }
+        // 回溯路径
+        QPoint cur=to;
+        while(cur!=from&&prev[cur.x()][cur.y()]!=QPoint(-1,-1)) {
+            map[cur.x()][cur.y()]=0;
+            cur=prev[cur.x()][cur.y()];
+        }
+        map[from.x()][from.y()]=0;
+    };
+    for(const auto& spawn:enemySpawns) carvePath(spawn, base);
 
-        // 3. 随机生成障碍物（1和2）
-        int totalCells = (ROWS-2) * (COLS-2);  // 除去边界的总单元格数
-        int obstacleCount = totalCells * OBSTACLE_DENSITY / 100;  // 障碍物总数
-
-        for (int k = 0; k < obstacleCount; ++k) {
-            // 随机生成一个非边界、非出生点的位置
-            int x, y;
-            do {
-                x = rand->bounded(1, ROWS-1);  // 避开边界（0和ROWS-1）
-                y = rand->bounded(1, COLS-1);  // 避开边界（0和COLS-1）
-            } while (map[x][y] != 0);  // 确保是空地（排除已占用的单元格）
-
-            // 随机决定是不可破坏墙体（1）还是可破坏墙体（2）
-            if (rand->bounded(100) < BREAKABLE_RATIO) {
-                map[x][y] = 2;  // 可破坏墙体
-            } else {
-                map[x][y] = 1;  // 不可破坏墙体
+    // 5. 分支生成（主干道上随机分叉，分支末端放道具）
+    int branchCount = 4;
+    for(int b=0;b<branchCount;++b) {
+        // 随机选主干道上的点
+        int ex = rand->bounded(2, ROWS-3);
+        int ey = rand->bounded(2, COLS-3);
+        if(map[ex][ey]==0 && !(QPoint(ex,ey)==base)) {
+            int len = rand->bounded(3,6);
+            int dir = rand->bounded(4); // 0上1下2左3右
+            int bx=ex, by=ey;
+            for(int l=0;l<len;++l) {
+                int nx=bx, ny=by;
+                if(dir==0) nx--;
+                else if(dir==1) nx++;
+                else if(dir==2) ny--;
+                else ny++;
+                if(nx<=1||nx>=ROWS-2||ny<=1||ny>=COLS-2) break;
+                if(map[nx][ny]!=0) break;
+                bx=nx; by=ny;
+                map[bx][by]=0;
             }
+            // 分支末端放道具
+            map[bx][by]=3;
         }
-
-        // 4. 随机添加道具点（3）
-        int propCount = 5;  // 道具数量
-        for (int k = 0; k < propCount; ++k) {
-            int x, y;
-            do {
-                x = rand->bounded(1, ROWS-1);
-                y = rand->bounded(1, COLS-1);
-            } while (map[x][y] != 0);  // 只在空地上放道具
-            map[x][y] = 3;
-        }
-
-        // 5. 随机添加水域（4）（可选）
-        int waterCount = 10;
-        for (int k = 0; k < waterCount; ++k) {
-            int x, y;
-            do {
-                x = rand->bounded(1, ROWS-1);
-                y = rand->bounded(1, COLS-1);
-            } while (map[x][y] != 0);  // 只在空地上放水域
-            map[x][y] = 4;
-        }
-
-        return map;
-}
-
-
-void Map::paintEvent(QPaintEvent *){
-    QPainter painter(this);
-    QPixmap image;
-    image.load(":/wall/images/walls/2.png");
-    painter.drawPixmap(0, 0, image);
-    painter.drawPixmap(0, 50, image);
-}
-
-void Map::keyPressEvent(QKeyEvent * event){
-    if (!event->isAutoRepeat()) {
-        pressed_keys.insert(event->key());
     }
-    QWidget::keyPressEvent(event);
-}
 
-void Map::keyRealeaseEent(QKeyEvent * event){
-    if (!event->isAutoRepeat()) {
-        pressed_keys.insert(event->key());
+    // 6. 其余空地随机填充障碍、丛林、河流
+    for(int i=1;i<ROWS-1;++i) for(int j=1;j<COLS-1;++j) {
+        if(map[i][j]!=0) continue;
+        int r = rand->bounded(100);
+        if(r<15) map[i][j]=1; // 砖墙
+        else if(r<25) map[i][j]=2; // 铁墙
+        else if(r<31.67) map[i][j]=4; // 河流，概率减少1/3
+        else if(r<45) map[i][j]=3; // 丛林
+        // 其余为地面
     }
-    QWidget::keyReleaseEvent(event);
+
+    // 7. 敌人出生点再清空
+    for(const auto& p:enemySpawns) map[p.x()][p.y()]=0;
+    // 司令部周围再清空
+    for(int dx=-1;dx<=1;++dx) for(int dy=-1;dy<=1;++dy) {
+        int nx=base.x()+dx, ny=base.y()+dy;
+        if(nx>0&&nx<ROWS-1&&ny>0&&ny<COLS-1) map[nx][ny]=0;
+    }
+    map[base.x()][base.y()]=5;
+
+    // nothing to return
 }
 
-void Map::checkKeyCombinations(){
-    if (pressed_keys.contains(Qt::Key_CapsLock) &&
-        pressed_keys.contains(Qt::Key_Escape)) {
-        close();
+void Map::debug() const {
+    for (const auto& row : map) {
+        for (auto ele : row) {
+            std::cout << ele;
+        }
+        std::cout << std::endl;
     }
 }
+
+void Map::update() {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,32 +1,51 @@
 #include "startscene.h"
 
-StartScene::StartScene() {
-    //设置窗口大小
-    resize(950, 750);
-    // 初始化定时器，每50ms检查一次按键组合
-    timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, &StartScene::checkKeyCombinations);
-    timer->start(50);
-    //创建按钮
-    QPushButton* startBtn = new QPushButton("game start", this);
-    startBtn->move(this->width()/2-75, this->height()/2-32.5);
-    startBtn->resize(150, 65);
-    //监听按钮点击
-    Map* map = new Map;
-    connect(map, &Map::switchToMainwindow, this, [=](){
-        map->hide();
-        this->show();
-    });
-    connect(startBtn, &QPushButton::clicked, this, [=](){
-        qDebug() << "click the button startBtn";
-        switchToGameScence(map);
+StartScene::StartScene(QObject* parent)
+    : BaseScene{parent}
+{
+    this->setSceneRect(0, 0, 950, 750);
+    setBackgroundBrush(QBrush(Qt::black));
+    //新建
+    start_btn = new SceneButton("START");
+    exit_btn = new SceneButton("EXIT");
+    help_btn = new SceneButton("HELP");
+    //按钮设置
+    buttonSetting(start_btn, 0);
+    buttonSetting(exit_btn, 1);
+    buttonSetting(help_btn, 2);
+
+
+    //添加按钮
+    this->addItem(start_btn);
+    this->addItem(exit_btn);
+    this->addItem(help_btn);
+
+    //按钮信号
+    totalConnect(start_btn, Game);
+    totalConnect(exit_btn, Close);
+    totalConnect(help_btn, Help);
+}
+
+void StartScene::enter() {
+    setFocus();
+}
+
+// 按钮点击后的处理逻辑
+void StartScene::totalConnect(SceneButton* button, int type) {
+    connect(button, &SceneButton::clicked, this, [=](){
+        qDebug() << "点击按钮";
+        if(type == Help) {
+            QMessageBox::information(nullptr, "帮助", "欢迎来到游戏！\n操作说明：\n- WASD移动\n- J键攻击\n- CapsLock+Esc退出\n祝你游戏愉快！");
+            return;
+        }
+        emit switchToScene(type);   //跳转到game界面
     });
 }
 
-StartScene::~StartScene() {}
-
-void StartScene::switchToGameScence(Map* map) {
-    this->hide();
-    map->show();
+//按钮设置
+void StartScene::buttonSetting(SceneButton* button, int index) {
+    button->setPosition(this->width()/2-75, this->height()/2 - 70 + 70*index);
+    button->setSize(150, 60);
 }
+
 
