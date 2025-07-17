@@ -23,6 +23,44 @@ private:
 
 #endif // TANK_H
 
+#ifndef GAMECONTROLLER_H
+#define GAMECONTROLLER_H
+
+#include <QObject>
+#include <QTimer>
+#include <vector>
+
+class Map;
+class GameView;
+class Tank;
+class Bullet;
+
+class GameController : public QObject {
+    Q_OBJECT
+public:
+    GameController(QObject* parent = nullptr);
+    void show();
+
+private slots:
+    void handleKeyPress(int key);
+    void updateGame();
+    void handleGameOver(bool playerWon);
+    void resetGame();
+
+private:
+    void spawnEnemies(int count);
+    void showInstructions();
+
+    Map* map;
+    GameView* view;
+    Tank* player;
+    std::vector<Tank*> enemies;
+    std::vector<Bullet*> bullets;
+    QTimer* gameTimer;
+    bool gameOver;
+};
+
+#endif // GAMECONTROLLER_H
 
 
 #include "tank.h"
@@ -88,4 +126,152 @@ void Tank::autoMove() {
 
 bool Tank::getIsPlayer() const {
     return isPlayer;
+}
+
+
+
+#include <QApplication>
+#include "gamecontroller.h"
+#include "map.h"
+#include "gameview.h"
+#include "tank.h"
+#include "bullet.h"
+#include <QGraphicsTextItem>
+#include <QFont>
+
+GameController::GameController(QObject* parent) : QObject(parent), gameOver(false) {
+    map = new Map();
+    view = new GameView(map);  // 传递Map*给GameView构造函数
+
+    player = new Tank(380, 500, '^', true, map);
+    spawnEnemies(5);
+
+    connect(view, &GameView::keyPressed, this, &GameController::handleKeyPress);
+    connect(map, &Map::gameOver, this, &GameController::handleGameOver);
+
+    gameTimer = new QTimer(this);
+    connect(gameTimer, &QTimer::timeout, this, &GameController::updateGame);
+    gameTimer->start(30);
+
+    showInstructions();
+}
+
+void GameController::show() {
+    view->show();
+}
+
+void GameController::handleKeyPress(int key) {
+    if (gameOver) {
+        if (key == Qt::Key_R) {
+            resetGame();
+        } else if (key == Qt::Key_Q) {
+            QApplication::quit();
+        }
+        return;
+    }
+
+    switch(key) {
+    case Qt::Key_W:
+        player->move(0, -5);
+        break;
+    case Qt::Key_S:
+        player->move(0, 5);
+        break;
+    case Qt::Key_A:
+        player->move(-5, 0);
+        break;
+    case Qt::Key_D:
+        player->move(5, 0);
+        break;
+    case Qt::Key_Space:
+        bullets.push_back(player->shoot());
+        break;
+    case Qt::Key_Q:
+        QApplication::quit();
+        break;
+    }
+}
+
+void GameController::updateGame() {
+    if (gameOver) return;
+
+    for (auto enemy : enemies) {
+        enemy->autoMove();
+    }
+
+    for (auto bullet : bullets) {
+        bullet->move();
+    }
+
+    map->checkCollisions(bullets, enemies, player);
+    map->update();
+}
+
+void GameController::handleGameOver(bool playerWon) {
+    gameOver = true;
+    gameTimer->stop();
+
+    QGraphicsTextItem* resultText = new QGraphicsTextItem(playerWon ? "胜利!" : "失败!");
+    resultText->setFont(QFont("Arial", 40));
+    resultText->setDefaultTextColor(playerWon ? Qt::green : Qt::red);
+    resultText->setPos(350, 250);
+    map->addItem(resultText);
+
+    QGraphicsTextItem* restartText = new QGraphicsTextItem("按 R 键重新开始");
+    restartText->setFont(QFont("Arial", 20));
+    restartText->setDefaultTextColor(Qt::white);
+    restartText->setPos(330, 320);
+    map->addItem(restartText);
+}
+
+void GameController::resetGame() {
+    for (auto bullet : bullets) {
+        map->removeItem(bullet);
+        delete bullet;
+    }
+    bullets.clear();
+
+    for (auto enemy : enemies) {
+        map->removeItem(enemy);
+        delete enemy;
+    }
+    enemies.clear();
+
+    map->removeItem(player);
+    delete player;
+
+    map->initMap();
+    player = new Tank(380, 500, '^', true, map);
+    spawnEnemies(5);
+
+    gameOver = false;
+    gameTimer->start();
+
+    QList<QGraphicsItem*> items = map->items();
+    for (auto item : items) {
+        QGraphicsTextItem* textItem = dynamic_cast<QGraphicsTextItem*>(item);
+        if (textItem && (textItem->toPlainText() == "胜利!" || textItem->toPlainText() == "失败!" ||
+                         textItem->toPlainText() == "按 R 键重新开始")) {
+            map->removeItem(item);
+            delete item;
+        }
+    }
+}
+
+void GameController::spawnEnemies(int count) {
+    for (int i = 0; i < count; ++i) {
+        int x = 100 + (i % 3) * 200;
+        int y = 50 + (i / 3) * 100;
+        enemies.push_back(new Tank(x, y, 'v', false, map));
+    }
+}
+
+void GameController::showInstructions() {
+    QGraphicsTextItem* instructions = new QGraphicsTextItem(
+        "控制: W(上) S(下) A(左) D(右) 空格(射击)\n"
+        "按 Q 退出游戏, 按 R 重新开始"
+        );
+    instructions->setDefaultTextColor(Qt::white);
+    instructions->setPos(10, 10);
+    map->addItem(instructions);
 }
