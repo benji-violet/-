@@ -1,0 +1,91 @@
+#ifndef TANK_H
+#define TANK_H
+
+#include <QGraphicsRectItem>
+#include <vector>
+
+class Map;
+class Bullet;
+
+class Tank : public QGraphicsRectItem {
+public:
+    Tank(int x, int y, char dir, bool isPlayer, Map* map);
+    void move(int dx, int dy);
+    Bullet* shoot();
+    void autoMove();
+    bool getIsPlayer() const;
+
+private:
+    char direction;
+    bool isPlayer;
+    Map* map;
+};
+
+#endif // TANK_H
+
+
+
+#include "tank.h"
+#include "bullet.h"
+#include "map.h"
+#include <QBrush>
+#include <random>
+
+Tank::Tank(int x, int y, char dir, bool isPlayer, Map* map)
+    : QGraphicsRectItem(0, 0, 40, 40, nullptr),
+    direction(dir), isPlayer(isPlayer), map(map) {
+    setPos(x, y);
+    setBrush(QBrush(isPlayer ? Qt::blue : Qt::green));
+    map->addItem(this);
+}
+
+void Tank::move(int dx, int dy) {
+    int newX = x() + dx;
+    int newY = y() + dy;
+
+    if (map->isEmpty(newX, newY)) {
+        setPos(newX, newY);
+
+        if (dx > 0) direction = '>';
+        else if (dx < 0) direction = '<';
+        else if (dy > 0) direction = 'v';
+        else if (dy < 0) direction = '^';
+    }
+}
+
+Bullet* Tank::shoot() {
+    int bulletX = x() + 18;
+    int bulletY = y() + 18;
+
+    switch(direction) {
+    case '^': bulletY -= 20; break;
+    case 'v': bulletY += 20; break;
+    case '<': bulletX -= 20; break;
+    case '>': bulletX += 20; break;
+    }
+
+    return new Bullet(bulletX, bulletY, direction, map);
+}
+
+void Tank::autoMove() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dis(0, 3);
+    static std::uniform_int_distribution<> shootDis(0, 100);
+
+    int moveType = dis(gen);
+    switch(moveType) {
+    case 0: move(0, -5); break;
+    case 1: move(0, 5); break;
+    case 2: move(-5, 0); break;
+    case 3: move(5, 0); break;
+    }
+
+    if (shootDis(gen) < 2) {
+        shoot();
+    }
+}
+
+bool Tank::getIsPlayer() const {
+    return isPlayer;
+}
