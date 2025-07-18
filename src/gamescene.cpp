@@ -4,7 +4,7 @@ GameScene::GameScene(QObject* parent)
     : BaseScene {parent}
 {
     //游戏基础设置
-    this->setSceneRect(0, 0, 1920, 1080);
+    this->setSceneRect(0, 0, 2400, 1800);
     setBackgroundBrush(QBrush(Qt::black));
     //新建按钮
     back_btn = new SceneButton("Back");
@@ -20,23 +20,28 @@ GameScene::GameScene(QObject* parent)
     // 初始化地图显示
     int rows = map->getRows();
     int cols = map->getCols();
-    map_items_base.resize(rows);
-    map_items_top.resize(rows);
+    map_cells_base.resize(rows);
+    map_cells_top.resize(rows);
     for(int i=0;i<rows;++i) {
-        map_items_base[i].resize(cols);
-        map_items_top[i].resize(cols);
+        map_cells_base[i].resize(cols);
+        map_cells_top[i].resize(cols);
         for(int j=0;j<cols;++j) {
-            QGraphicsPixmapItem* base = new QGraphicsPixmapItem();
-            QGraphicsPixmapItem* top = new QGraphicsPixmapItem();
-            base->setPos(j*60, i*60);
-            top->setPos(j*60, i*60);
-            this->addItem(base);
-            this->addItem(top);
-            map_items_base[i][j] = base;
-            map_items_top[i][j] = top;
+            // 创建地面层MapCell
+            map_cells_base[i][j] = new MapCell(j, i, Ground, nullptr);
+            this->addItem(map_cells_base[i][j]->getGraphicsItem());
+            
+            // 创建上层MapCell
+            map_cells_top[i][j] = new MapCell(j, i, Ground, nullptr);
+            this->addItem(map_cells_top[i][j]->getGraphicsItem());
         }
     }
     render();
+
+    // 添加玩家到地图中央
+    int player_x = cols / 2;
+    int player_y = rows - 3;
+    player_ = new Player(player_x * 60 + 10, player_y * 60 + 10, this);
+    this->addItem(player_->getGraphicsItem());
 }
 
 void GameScene::enter() {
@@ -48,7 +53,7 @@ void GameScene::enter() {
 }
 
 void GameScene::buttonSetting(SceneButton* button) {
-    button->setPosition(this->width()-60, this->height()-20);
+    button->setPosition(1600-60, 900-20);
     button->setSize(60, 20);
 }
 
@@ -64,51 +69,50 @@ void GameScene::handleInput() {
 }
 
 void GameScene::update() {
-
+    if (player_) player_->update();
 }
 
 void GameScene::render() {
     int rows = map->getRows();
     int cols = map->getCols();
-    // 先用0号图片铺满地面
+    
+    // 先渲染所有地面
     for(int i=0;i<rows;++i) {
         for(int j=0;j<cols;++j) {
-            QString filepath = QString(":/images/walls/0.png");
-            QPixmap pix(filepath);
-            map_items_base[i][j]->setPixmap(pix.scaled(60, 60));
+            map_cells_base[i][j]->setType(Ground);
         }
     }
-    // 上层元素
+    
+    // 再渲染上层元素
+    for(int i=0;i<rows;++i) {
+        for(int j=0;j<cols;++j) {
+            CellType cellType = map->getCell(i, j);
+            if(cellType == Ground) {
+                map_cells_top[i][j]->setVisible(false); // 隐藏上层，显示地面
+            } else {
+                map_cells_top[i][j]->setVisible(true);
+                map_cells_top[i][j]->setType(cellType);
+            }
+        }
+    }
+    
+    // 敌人出生点用6号图片覆盖
     int mid = cols / 2;
     QVector<QPoint> enemySpawns = {
         QPoint(1, mid - 5),        // 中上偏左
         QPoint(1, mid + 5),        // 中上偏右
-        QPoint(5, 2),              // 左边缘下移3格
-        QPoint(5, cols - 3)        // 右边缘下移3格
+        QPoint(8, 2),              // 左边缘下移3格
+        QPoint(8, cols - 3)        // 右边缘下移3格
     };
-    for(int i=0;i<rows;++i) {
-        for(int j=0;j<cols;++j) {
-            int tag = map->getCell(i, j);
-            bool isEnemy = false;
-            for(const auto& p : enemySpawns) {
-                if(i == p.x() && j == p.y()) isEnemy = true;
-            }
-            if(isEnemy) {
-                QString filepath = QString(":/images/walls/6.png");
-                QPixmap pix(filepath);
-                map_items_top[i][j]->setPixmap(pix.scaled(60, 60));
-            } else if(tag == 5) {
-                QString filepath = QString(":/images/walls/5.png");
-                QPixmap pix(filepath);
-                map_items_top[i][j]->setPixmap(pix.scaled(60, 60));
-            } else if(tag == 1 || tag == 2 || tag == 3 || tag == 4) {
-                QString filepath = QString(":/images/walls/%1.png").arg(tag);
-                QPixmap pix(filepath);
-                map_items_top[i][j]->setPixmap(pix.scaled(60, 60));
-            } else {
-                map_items_top[i][j]->setPixmap(QPixmap()); // 透明
-            }
-        }
+    
+    for(const auto& p : enemySpawns) {
+        map_cells_top[p.x()][p.y()]->setVisible(true);
+        map_cells_top[p.x()][p.y()]->setType(EnemySpawn);
+    }
+    // 保证player在最上层
+    if (player_) {
+        player_->getGraphicsItem()->setZValue(1000);
+        player_->getGraphicsItem()->setVisible(true);
     }
 }
 
@@ -132,4 +136,12 @@ void GameScene::gameCease() {
 
 void GameScene::debug() {
     qDebug() << running;
+}
+
+void GameScene::handlePlayerKeyPress(int key) {
+    if (player_) player_->handleKeyPress(key);
+}
+
+void GameScene::handlePlayerKeyRelease(int key) {
+    if (player_) player_->handleKeyRelease(key);
 }

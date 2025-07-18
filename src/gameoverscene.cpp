@@ -3,7 +3,7 @@
 GameOverScene::GameOverScene(QObject *parent)
     : BaseScene{parent}
 {
-    this->setSceneRect(0, 0, 950, 750);
+    this->setSceneRect(0, 0, 1400, 800);
     setBackgroundBrush(QBrush(Qt::black));
     // 新建按钮
     back_to_menu_btn = new SceneButton("返回主菜单");
@@ -30,6 +30,6 @@ void GameOverScene::totalConnect(SceneButton* button, int type) {
 }
 
 void GameOverScene::buttonSetting(SceneButton* button, int index) {
-    button->setPosition(this->width()/2-50, this->height()/2-20 + 60*index);
+    button->setPosition(width()/2-50, height()/2-20 + 60*index);
     button->setSize(100, 40);
 }

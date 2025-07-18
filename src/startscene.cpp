@@ -3,7 +3,7 @@
 StartScene::StartScene(QObject* parent)
     : BaseScene{parent}
 {
-    this->setSceneRect(0, 0, 950, 750);
+    this->setSceneRect(0, 0, 1400, 800);
     setBackgroundBrush(QBrush(Qt::black));
     //新建
     start_btn = new SceneButton("START");
@@ -44,7 +44,7 @@ void StartScene::totalConnect(SceneButton* button, int type) {
 
 //按钮设置
 void StartScene::buttonSetting(SceneButton* button, int index) {
-    button->setPosition(this->width()/2-75, this->height()/2 - 70 + 70*index);
+    button->setPosition(width()/2-75, height()/2 - 70 + 70*index);
     button->setSize(150, 60);
 }
 

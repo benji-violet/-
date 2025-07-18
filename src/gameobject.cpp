@@ -1,13 +1,19 @@
 #include "gameobject.h"
 
-GameObject::GameObject(QObject *parent)
-    : QObject{parent}
+GameObject::GameObject(int x, int y, int width, int height, ObjectType type, QObject *parent)
+    : QObject{parent}, x(x), y(y), width(width), height(height), type(type), is_alive(true), speed(0)
 {
     this->position.setX(x);
     this->position.setY(y);
+    this->bounding_rect = new QRect(x, y, width, height);
 }
 
-GameObject::~GameObject() {}
+GameObject::~GameObject() {
+    if (bounding_rect) {
+        delete bounding_rect;
+        bounding_rect = nullptr;
+    }
+}
 
 void GameObject::move(int dx, int dy) {
     this->x += dx;
@@ -36,8 +42,8 @@ void GameObject::setPos(int nx, int ny) {
     this->position.setY(ny);
 }
 
-ObjectType GameObject::type() {
-    return this->m_type;
+ObjectType GameObject::getType() {
+    return this->type;
 }
 
 bool GameObject::isAlive() {
@@ -56,6 +62,13 @@ int GameObject::getSpeed() {
     return this->speed;
 }
 
-QRectF GameObject::getRect() {
+QRect* GameObject::getRect() {
     return bounding_rect;
+}
+
+bool GameObject::isCollision(QRect* rect) {
+    if (this->bounding_rect->contains(*rect)) {
+        return true;
+    }
+    return false;
 }

@@ -19,8 +19,7 @@ GameView::GameView(QWidget *parent)
     game_over_scene = new GameOverScene();
 
     // 设置视图属性
-    setFixedSize(1920, 1080);
-    setSceneRect(0, 0, 1920, 1080);
+    setFixedSize(1600, 900);
     setAlignment(Qt::AlignLeft | Qt::AlignTop);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -43,13 +42,11 @@ void GameView::switchScene(int sceneType)
     switch(sceneType)
     {
     case Start: // 菜单场景
-        showNormal(); // 退出全屏
         setScene(start_scene);
         start_scene->enter();
         game_scene->gameCease();
         break;
     case Game: // 游戏场景
-        showFullScreen(); // 自动全屏
         game_scene->gameStart();
         game_scene->debug();
         setScene(game_scene);
@@ -83,6 +80,8 @@ void GameView::keyPressEvent(QKeyEvent *event)
     // 添加按键到集合，但忽略自动重复的按键事件
     if (!event->isAutoRepeat()) {
         pressed_keys.insert(event->key());
+        // 转发给GameScene的玩家
+        if (game_scene) game_scene->handlePlayerKeyPress(event->key());
     }
     QGraphicsView::keyPressEvent(event);
 }
@@ -93,6 +92,8 @@ void GameView::keyReleaseEvent(QKeyEvent *event)
     // 从集合中移除按键，忽略自动重复的按键事件
     if (!event->isAutoRepeat()) {
         pressed_keys.remove(event->key());
+        // 转发给GameScene的玩家
+        if (game_scene) game_scene->handlePlayerKeyRelease(event->key());
     }
     QGraphicsView::keyReleaseEvent(event);
 }
@@ -100,7 +101,11 @@ void GameView::keyReleaseEvent(QKeyEvent *event)
 //运行游戏
 void GameView::run() {
     qDebug() << "gameview";
-    this->setFixedSize(950, 750);
-    // 只做主循环逻辑，不再重复show和setFixedSize
+    this->setFixedSize(1400, 800);
+    // 卷轴滚动：以玩家为中心
+    if (game_scene && game_scene->player_) {
+        QPointF player_center = game_scene->player_->getGraphicsItem()->sceneBoundingRect().center();
+        centerOn(player_center);
+    }
     game_scene->run();
 }

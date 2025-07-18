@@ -10,26 +10,41 @@ CONFIG += c++17
 
 SOURCES += \
     basescene.cpp \
+    bullet.cpp \
+    enemy.cpp \
+    enemyspawner.cpp \
     gameobject.cpp \
     gameoverscene.cpp \
     gamescene.cpp \
     gameview.cpp \
     main.cpp \
     map.cpp \
+    mapcell.cpp \
+    player.cpp \
     scenebutton.cpp \
-    startscene.cpp
+    startscene.cpp \
+    tank.cpp
 
 HEADERS += \
     basescene.h \
+    bullet.h \
+    enemy.h \
+    enemyspawner.h \
     gameobject.h \
     gameoverscene.h \
     gamescene.h \
     gameview.h \
     map.h \
+    mapcell.h \
+    player.h \
     scenebutton.h \
-    startscene.h
+    startscene.h \
+    tank.h
 
 FORMS +=
+
+OTHER_FILES += \
+    GameObject_Architecture_README.md
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

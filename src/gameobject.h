@@ -2,8 +2,8 @@
  * 此基类将被所有游戏对象所继承
 */
 
-#ifndef GAMEOBJECT_H
-#define GAMEOBJECT_H
+#ifndef GAME_OBJECT_H
+#define GAME_OBJECT_H
 
 #include <QObject>
 #include <QPoint>
@@ -19,10 +19,10 @@ class GameObject : public QObject
 {
     Q_OBJECT
 public:
-    explicit GameObject(QObject *parent = nullptr); //需要初始化部分必须的属性
-    ~GameObject();  //析构
+    explicit GameObject(int x = 0, int y = 0, int width = 60, int height = 60, 
+                       ObjectType type = NeutralType, QObject *parent = nullptr);
+    virtual ~GameObject();  //析构
 
-//游戏对象方法
 protected:
     void move(int dx, int dy);    //游戏对象移动方法
     virtual void update() = 0;  //用于更新状态
@@ -34,16 +34,18 @@ protected:
     virtual void setPos(const QPoint &pos); //设置位置
     virtual void setPos(int x, int y);
 
-    ObjectType type();  //获取对象类型
+    ObjectType getType();  //获取对象类型
     bool isAlive(); //获取存活状态
 
     int getSpeed();    //获取速度
     int getHeight();   //获取高度
     int getWidth();    //获取宽度
-    QRectF getRect();   //获取碰撞箱
+    QRect* getRect();   //获取碰撞箱
+
+    bool isCollision(QRect* rect); //判断是否碰撞
 
 //游戏对象属性
-private:
+protected:
     int x;  //x横坐标
     int y;  //y纵坐标
     QPoint position;    //位置
@@ -51,14 +53,14 @@ private:
     int width;  //宽度
     int height; //高度
 
-    QRect bounding_rect;    //碰撞箱
+    QRect* bounding_rect;    //碰撞箱
 
     int speed; //速度
-
-    ObjectType m_type;    //对象类型
+    ObjectType type;    //对象类型
     bool is_alive;   //存活状态
+
 
 signals:
 };
 
-#endif // GAMEOBJECT_H
+#endif // GAME_OBJECT_H
