@@ -1,6 +1,7 @@
 #include "mapcell.h"
 #include <QDebug>
 
+// 构造
 MapCell::MapCell(int x, int y, CellType cell_type, QObject *parent)
     : GameObject(x * cell_size_, y * cell_size_, cell_size_, cell_size_, ObstacleType, parent),
       cell_type_(cell_type), graphics_item_(nullptr)
@@ -10,6 +11,7 @@ MapCell::MapCell(int x, int y, CellType cell_type, QObject *parent)
     updateImage();
 }
 
+// 析构
 MapCell::~MapCell() {
     if (graphics_item_) {
         delete graphics_item_;
@@ -17,6 +19,7 @@ MapCell::~MapCell() {
     }
 }
 
+// 设置地图元素类型
 void MapCell::setType(CellType cell_type)
 {
     if (cell_type_ != cell_type) {
@@ -25,6 +28,7 @@ void MapCell::setType(CellType cell_type)
     }
 }
 
+// 更新载入图片
 void MapCell::updateImage()
 {
     if (!graphics_item_) return;
@@ -37,6 +41,7 @@ void MapCell::updateImage()
     graphics_item_->setPixmap(pix.scaled(cell_size_, cell_size_));
 }
 
+// 将地图元素设为可见
 void MapCell::setVisible(bool visible)
 {
     if (graphics_item_) {
@@ -46,5 +51,5 @@ void MapCell::setVisible(bool visible)
 
 void MapCell::update()
 {
-    // 可扩展动画或其他逻辑
+    // 未来可扩展动画或其他逻辑
 }

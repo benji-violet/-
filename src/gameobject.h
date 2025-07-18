@@ -22,6 +22,8 @@ public:
     explicit GameObject(int x = 0, int y = 0, int width = 60, int height = 60, 
                        ObjectType type = NeutralType, QObject *parent = nullptr);
     virtual ~GameObject();  //析构
+    bool isCollision(QRect* rect); //判断是否碰撞
+    QRect* getRect();   //获取碰撞箱
 
 protected:
     void move(int dx, int dy);    //游戏对象移动方法
@@ -40,9 +42,9 @@ protected:
     int getSpeed();    //获取速度
     int getHeight();   //获取高度
     int getWidth();    //获取宽度
-    QRect* getRect();   //获取碰撞箱
 
-    bool isCollision(QRect* rect); //判断是否碰撞
+    void syncAllPos(int nx, int ny); // 同步位置相关变量
+
 
 //游戏对象属性
 protected:
@@ -55,9 +57,9 @@ protected:
 
     QRect* bounding_rect;    //碰撞箱
 
-    int speed; //速度
     ObjectType type;    //对象类型
     bool is_alive;   //存活状态
+    int speed; //速度
 
 
 signals:

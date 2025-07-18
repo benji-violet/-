@@ -6,6 +6,7 @@ Map::Map(QObject* parent) : QObject(parent) {
 
 Map::~Map() {}
 
+// 随机地图生成
 void Map::generateRandomMap() {
     map = QVector<QVector<MapCell*>>(ROWS, QVector<MapCell*>(COLS, nullptr));
     QRandomGenerator* rand = QRandomGenerator::global();
@@ -190,6 +191,7 @@ void Map::generateRandomMap() {
     map[base.x()][base.y()]->setType(HQ);
 }
 
+// 测试随机地图生成是否正常
 void Map::debug() const {
     for (const auto& row : map) {
         for (auto cell : row) {

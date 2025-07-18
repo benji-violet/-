@@ -39,8 +39,16 @@ protected:
     double direction_angle_; // 角度，0为up
     QGraphicsPixmapItem* graphics_item_;
     
+    // 新增：上一步位置
+    int prev_x_;
+    int prev_y_;
+    
     void updateImage();
-    QString getImagePath() const;
+public:
+    // 新增：保存当前位置为上一步
+    void savePrevPos();
+    // 新增：回退到上一步
+    void rollbackPos();
 };
 
 #endif // TANK_H

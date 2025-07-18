@@ -67,8 +67,15 @@ QRect* GameObject::getRect() {
 }
 
 bool GameObject::isCollision(QRect* rect) {
-    if (this->bounding_rect->contains(*rect)) {
-        return true;
+    return this->bounding_rect->intersects(*rect);
+}
+
+void GameObject::syncAllPos(int nx, int ny) {
+    x = nx;
+    y = ny;
+    position.setX(nx);
+    position.setY(ny);
+    if (bounding_rect) {
+        bounding_rect->moveTo(nx, ny);
     }
-    return false;
 }

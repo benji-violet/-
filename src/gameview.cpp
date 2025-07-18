@@ -100,7 +100,7 @@ void GameView::keyReleaseEvent(QKeyEvent *event)
 
 //运行游戏
 void GameView::run() {
-    qDebug() << "gameview";
+    // qDebug() << "gameview";
     this->setFixedSize(1400, 800);
     // 卷轴滚动：以玩家为中心
     if (game_scene && game_scene->player_) {
